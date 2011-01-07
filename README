@@ -1,1 +1,48 @@
-This file was created by PyCharm 1.1 for binding GitHub repository
+This is so not done yet. It's probably buggy. I just spent 20 minutes on it, but it *does* work enough that it may
+be useful as-is (but keep up w/ goings on here!).
+
+The idea is that there are lots of use cases where having quick access to view the source code for a known method
+or function name inside of an installed module or source file would be great. Grep can help find the file it's in, and
+even print the line number it starts on, but if you're not going to edit the code, why open an editor? Just print it
+to the screen so you can inspect it, or explain something to the boss or a buddy, or whatever.
+
+So, here's how it works for the moment:
+
+furby:qvu jonesy$ python qvu.py finish tornado.web
+Method: finish in Class: RequestHandler
+    def finish(self, chunk=None):
+        """Finishes this response, ending the HTTP request."""
+        assert not self._finished
+        if chunk is not None: self.write(chunk)
+
+        # Automatically support ETags and add the Content-Length header if
+        # we have not flushed any content yet.
+        if not self._headers_written:
+            if (self._status_code == 200 and self.request.method == "GET" and
+                "Etag" not in self._headers):
+                hasher = hashlib.sha1()
+                for part in self._write_buffer:
+                    hasher.update(part)
+                etag = '"%s"' % hasher.hexdigest()
+                inm = self.request.headers.get("If-None-Match")
+                if inm and inm.find(etag) != -1:
+                    self._write_buffer = []
+                    self.set_status(304)
+                else:
+                    self.set_header("Etag", etag)
+            if "Content-Length" not in self._headers:
+                content_length = sum(len(part) for part in self._write_buffer)
+                self.set_header("Content-Length", content_length)
+
+        if hasattr(self.request, "connection"):
+            # Now that the request is finished, clear the callback we
+            # set on the IOStream (which would otherwise prevent the
+            # garbage collection of the RequestHandler when there
+            # are keepalive connections)
+            self.request.connection.stream.set_close_callback(None)
+
+        if not self.application._wsgi:
+            self.flush(include_footers=True)
+            self.request.finish()
+            self._log()
+        self._finished = True
