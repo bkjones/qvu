@@ -19,10 +19,13 @@ if __name__ == '__main__':
         name, lineno = pair
         if name == methname:
             startline = lineno
-            endline = methods[methods.index(pair) + 1][1]
+            if methods.index(pair) == methods.index(methods[-1]):
+                endline = None
+            else:
+                endline = methods[methods.index(pair) + 1][1]
             break
 
-    src = clsfile.readlines()[startline-1:endline-1]
+    src = clsfile.readlines()[startline-1:endline-1 if endline is not None else -1]
     for srcline in src:
         print(srcline, end='')
 
